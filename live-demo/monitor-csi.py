@@ -6,6 +6,7 @@ import numpy as np
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from utils import ESP32CSIMultiTaskModel, parse_csi_data
+import re
 
 class CSIFileHandler(FileSystemEventHandler):
     def __init__(self, model, input_file, output_file):
@@ -13,16 +14,34 @@ class CSIFileHandler(FileSystemEventHandler):
         self.input_file = input_file
         self.output_file = output_file
         
-    def process_csv(self):
-        """Process CSV file and return predictions"""
+    def extract_csi_data(self, line):
+        """Extract CSI data array from a line of text"""
+        # Find content between square brackets
+        match = re.search(r'\[(.*?)\]', line)
+        if match:
+            return match.group(0)  # Return the full bracket content
+        return None
+        
+    def process_txt(self):
+        """Process text file and return predictions"""
         try:
-            # Read CSV
-            df = pd.read_csv(self.input_file)
+            # Read all lines from the file
+            with open(self.input_file, 'r') as f:
+                lines = f.readlines()
             
-            # Parse CSI data
-            csi_data = np.stack(df['CSI_DATA'].apply(parse_csi_data).values)
+            # Extract CSI data from each line
+            csi_data = []
+            for line in lines:
+                csi_str = self.extract_csi_data(line)
+                if csi_str:
+                    csi_data.append(parse_csi_data(csi_str))
             
-            # Reshape for model input (batch_size, n_subcarriers, window_size, channels)
+            if not csi_data:
+                print("No valid CSI data found")
+                return None
+                
+            # Stack and reshape the data
+            csi_data = np.stack(csi_data)
             csi_reshaped = csi_data.reshape(-1, 128, 50, 1)
             
             # Get predictions
@@ -35,7 +54,7 @@ class CSIFileHandler(FileSystemEventHandler):
             return avg_presence, avg_location[0], avg_location[1]
             
         except Exception as e:
-            print(f"Error processing CSV: {str(e)}")
+            print(f"Error processing file: {str(e)}")
             return None
     
     def save_prediction(self, prediction):
@@ -48,12 +67,12 @@ class CSIFileHandler(FileSystemEventHandler):
     def on_modified(self, event):
         """Handle file modification events"""
         if event.src_path == self.input_file:
-            print("CSV update detected, processing...")
-            prediction = self.process_csv()
+            print("File update detected, processing...")
+            prediction = self.process_txt()
             self.save_prediction(prediction)
 
 def start_monitoring(input_file, output_file):
-    """Start monitoring CSV file for updates"""
+    """Start monitoring text file for updates"""
     # Load model
     print("Loading model...")
     model = ESP32CSIMultiTaskModel()
@@ -80,7 +99,7 @@ def start_monitoring(input_file, output_file):
     observer.join()
 
 if __name__ == "__main__":
-    INPUT_FILE = "live-data.csv"
+    INPUT_FILE = "live-data.txt"
     OUTPUT_FILE = "live-predictions.txt"
     
     start_monitoring(INPUT_FILE, OUTPUT_FILE)
