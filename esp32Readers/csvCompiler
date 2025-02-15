@@ -2,44 +2,53 @@ import pandas as pd
 import time
 import random
 
-columns = ["timestamp", "type", "role", "mac", "rssi", "rate", "sig_mode", "bandwidth", "real", "imag"]
+# Define columns for CSV file
+columns = ["timestamp", "state", "x", "y", "rssi", "real", "imag"]
+
+# Initialize an empty dataframe
 df = pd.DataFrame(columns=columns)
 
 # Function to simulate receiving CSI data
-def collect_csi_data():
-    # Simulating CSI data in the required format
+def collect_csi_data(x_position, y_position, state):
+    # Simulate raw CSI data
     data = {
-        "timestamp": time.time(),
-        "type": "Data",
-        "role": "AP",
-        "mac": "00:11:22:33:44:55",
+        "timestamp": time.time(),  # Capture current time
+        "state": state,  # Presence state (1 for present, 0 for absent)
+        "x": x_position,  # x-coordinate (decimeters)
+        "y": y_position,  # y-coordinate (decimeters)
         "rssi": random.randint(-100, -30),  # Simulated RSSI value
-        "rate": random.choice([72, 144, 300, 600]),  # Simulated data rate
-        "sig_mode": random.choice([1, 2]),  # Signal modes (just an example)
-        "bandwidth": 20,  # Assuming a 20MHz bandwidth
-        "real": [random.uniform(-1, 1) for _ in range(30)],  # Simulating 30 subcarriers
-        "imag": [random.uniform(-1, 1) for _ in range(30)]   # Simulating 30 subcarriers
+        "real": [random.uniform(-1, 1) for _ in range(30)],  # Simulate 30 subcarriers for real part
+        "imag": [random.uniform(-1, 1) for _ in range(30)]  # Simulate 30 subcarriers for imaginary part
     }
-    
     return data
 
 # Function to save data to CSV
 def save_data_to_csv(data, csv_filename="csi_data.csv"):
+    global df
     # Convert real and imaginary parts to strings (for CSV compatibility)
     data["real"] = str(data["real"])
     data["imag"] = str(data["imag"])
     
     # Append the data to the DataFrame
-    global df
     df = df.append(data, ignore_index=True)
     
     # Write DataFrame to CSV
     df.to_csv(csv_filename, index=False)
 
-# Simulate data collection and saving every 1 second
-for _ in range(10):  # Simulate 10 data entries (can be increased)
-    csi_data = collect_csi_data()
+# Simulate data collection (10 samples in this example)
+for _ in range(10):  # Simulate 10 data points (this number can be increased)
+    # Simulate coordinates and presence state (here we assume the person is at a random position)
+    x_position = random.uniform(0, 50)  # Room size: 50 dm x 50 dm (5m x 5m room)
+    y_position = random.uniform(0, 50)
+    state = random.choice([0, 1])  # Randomly simulate presence (0 = absent, 1 = present)
+    
+    # Collect the CSI data
+    csi_data = collect_csi_data(x_position, y_position, state)
+    
+    # Save the data to CSV
     save_data_to_csv(csi_data, "csi_data.csv")
-    time.sleep(1)  # Simulate a 1-second interval between data collection
+    
+    # Wait for 1 second before collecting next data point
+    time.sleep(1)
 
 print("CSI data has been collected and saved to csi_data.csv.")
