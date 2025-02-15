@@ -1,3 +1,2 @@
 # theia
-![image](https://github.com/user-attachments/assets/52f3ea63-4602-45a0-a954-4c1850fbd35b)
-
+![original_6007bc307096aa8b554ce14109ba0186](https://github.com/user-attachments/assets/e3d5a99d-bc25-4bbf-b4a4-d05a70703d79)
