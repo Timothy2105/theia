@@ -309,3 +309,113 @@ def visualize_predictions(model, X_test, y_test_presence, y_test_location, num_s
         if y_test_presence[i] == 1:
             print(f"Location: True=({y_test_location[i][0]:.1f}, {y_test_location[i][1]:.1f}), "
                   f"Predicted=({location_pred[i][0]:.1f}, {location_pred[i][1]:.1f})")
+            
+def evaluate_predictions(model, test_csv_path, window_size=50):
+    """
+    Evaluate model predictions on test data
+    
+    Args:
+        model: Trained ESP32CSIMultiTaskModel
+        test_csv_path: Path to test CSV file
+        window_size: Size of the window for CSI data
+        
+    Returns:
+        Dictionary containing evaluation metrics. Returns early with basic metrics
+        if no presence is detected in the dataset.
+    """
+    # Read test data
+    df = pd.read_csv(test_csv_path)
+    
+    # Extract CSI data
+    csi_data = df['CSI_DATA'].apply(parse_csi_data).values
+    csi_data = np.stack(csi_data)
+    
+    # Extract ground truth labels
+    presence_labels = df['state'].values
+    locations = df[['locationX', 'locationY']].values
+    
+    # Prepare windows
+    n_samples = len(csi_data) // window_size
+    csi_windows = csi_data[:n_samples * window_size].reshape(n_samples, -1, window_size)
+    csi_windows = csi_windows[..., np.newaxis].astype(np.float32)
+    
+    # Get predictions
+    presence_pred, location_pred = model.predict(csi_windows)
+    
+    # Prepare ground truth for windows
+    presence_windows = np.array([
+        np.bincount(presence_labels[i:i+window_size]).argmax()
+        for i in range(0, n_samples * window_size, window_size)
+    ])
+    
+    # Calculate presence accuracy
+    presence_accuracy = np.mean((presence_pred > 0.5) == presence_windows)
+    
+    # Check if there are any presence detections
+    if not np.any(presence_windows == 1):
+        print("\nNo presence detected in dataset. Skipping location metrics.")
+        print("\nOverall Metrics:")
+        print(f"Presence Detection Accuracy: {presence_accuracy:.2f}")
+        print("Location Mean Absolute Error: N/A (no presence detected)")
+        print(f"Number of samples evaluated: {n_samples}")
+        
+        return {
+            'presence_accuracy': presence_accuracy,
+            'location_mae': None,
+            'n_samples': n_samples
+        }
+    
+    # If we have presence detections, calculate location metrics
+    location_windows = np.array([
+        np.mean(locations[i:i+window_size], axis=0)
+        if presence_windows[i//window_size] == 1
+        else np.array([-1, -1])
+        for i in range(0, n_samples * window_size, window_size)
+    ])
+    
+    # Calculate location error only for samples where person is present
+    present_mask = presence_windows == 1
+    present_locations = location_pred[present_mask]
+    present_ground_truth = location_windows[present_mask]
+    
+    location_mae = float(np.mean(np.abs(present_locations - present_ground_truth)))
+    
+    # Print detailed results for first 5 samples
+    print("\nDetailed results for first 5 samples:")
+    for i in range(min(5, len(presence_windows))):
+        print(f"\nSample {i+1}:")
+        print(f"Presence: True={presence_windows[i]}, Predicted={presence_pred[i][0]:.2f}")
+        if presence_windows[i] == 1:
+            print(f"Location: True=({location_windows[i][0]:.1f}, {location_windows[i][1]:.1f}), "
+                  f"Predicted=({location_pred[i][0]:.1f}, {location_pred[i][1]:.1f})")
+    
+    # Print overall metrics
+    print("\nOverall Metrics:")
+    print(f"Presence Detection Accuracy: {presence_accuracy:.2f}")
+    print(f"Location Mean Absolute Error: {location_mae:.2f}")
+    print(f"Number of samples evaluated: {n_samples}")
+    
+    return {
+        'presence_accuracy': presence_accuracy,
+        'location_mae': location_mae,
+        'n_samples': n_samples
+    }
+
+def run_predictions(model_path, test_csv_path):
+    """
+    Load a trained model and run predictions on new data
+    
+    Args:
+        model_path: Path to saved model file (.h5)
+        test_csv_path: Path to test CSV file
+        
+    Returns:
+        Dictionary containing evaluation metrics
+    """
+    # Load model
+    model = ESP32CSIMultiTaskModel()
+    model.model = tf.keras.models.load_model(model_path)
+    
+    # Run evaluation and return metrics directly
+    # All printing is now handled in evaluate_predictions
+    return evaluate_predictions(model.model, test_csv_path)
