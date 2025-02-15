@@ -39,3 +39,5 @@ The system uses a CNN architecture specifically designed for ESP32 CSI data, fea
 - Batch normalization
 - Dropout for regularization
 - Binary classification output (presence/absence)
+
+![original_6007bc307096aa8b554ce14109ba0186](https://github.com/user-attachments/assets/e3d5a99d-bc25-4bbf-b4a4-d05a70703d79)
