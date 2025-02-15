@@ -3,52 +3,47 @@ import time
 import random
 
 # Define columns for CSV file
-columns = ["timestamp", "state", "x", "y", "rssi", "real", "imag"]
+columns = ["state", "x", "y", "raw_data"]
 
 # Initialize an empty dataframe
 df = pd.DataFrame(columns=columns)
 
-# Function to simulate receiving CSI data
-def collect_csi_data(x_position, y_position, state):
-    # Simulate raw CSI data
+# Function to simulate receiving CSI data (now takes x, y, state, and simulated raw data)
+def collect_csi_data(x_position, y_position, state, simulated_raw_data):
     data = {
-        "timestamp": time.time(),  # Capture current time
         "state": state,  # Presence state (1 for present, 0 for absent)
         "x": x_position,  # x-coordinate (decimeters)
         "y": y_position,  # y-coordinate (decimeters)
-        "rssi": random.randint(-100, -30),  # Simulated RSSI value
-        "real": [random.uniform(-1, 1) for _ in range(30)],  # Simulate 30 subcarriers for real part
-        "imag": [random.uniform(-1, 1) for _ in range(30)]  # Simulate 30 subcarriers for imaginary part
+        "raw_data": simulated_raw_data  # Simulated raw data
     }
     return data
 
 # Function to save data to CSV
 def save_data_to_csv(data, csv_filename="csi_data.csv"):
     global df
-    # Convert real and imaginary parts to strings (for CSV compatibility)
-    data["real"] = str(data["real"])
-    data["imag"] = str(data["imag"])
-    
     # Append the data to the DataFrame
     df = df.append(data, ignore_index=True)
-    
     # Write DataFrame to CSV
     df.to_csv(csv_filename, index=False)
 
-# Simulate data collection (10 samples in this example)
-for _ in range(10):  # Simulate 10 data points (this number can be increased)
-    # Simulate coordinates and presence state (here we assume the person is at a random position)
-    x_position = random.uniform(0, 50)  # Room size: 50 dm x 50 dm (5m x 5m room)
-    y_position = random.uniform(0, 50)
-    state = random.choice([0, 1])  # Randomly simulate presence (0 = absent, 1 = present)
-    
-    # Collect the CSI data
-    csi_data = collect_csi_data(x_position, y_position, state)
-    
-    # Save the data to CSV
-    save_data_to_csv(csi_data, "csi_data.csv")
-    
-    # Wait for 1 second before collecting next data point
-    time.sleep(1)
+# Data collection loop (you'll run this *for each* grid point)
+while True:
+    try:
+        x_position = float(input("Enter x-coordinate (decimeters, 0-50, or 'done'): "))
+        if x_position == "done":  # Allow an exit
+            break
+        y_position = float(input("Enter y-coordinate (decimeters, 0-50): "))
+        state = int(input("Enter state (0 for absent, 1 for present): ")) # Always 1 when calibrating
+        
+        # Simulate raw data (replace with your *actual* ESP32 CSI readings)
+        simulated_raw_data = [random.uniform(-1, 1) for _ in range(10)]  # Placeholder
 
-print("CSI data has been collected and saved to csi_data.csv.")
+        csi_data = collect_csi_data(x_position, y_position, state, simulated_raw_data)
+        save_data_to_csv(csi_data, "csi_data.csv")
+
+        print("Data saved. Enter next coordinate, or 'done'.")
+
+    except ValueError:
+        print("Invalid input. Please enter numbers.")
+
+print("CSI data collection complete.  Check csi_data.csv")
