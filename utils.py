@@ -3,29 +3,24 @@ import tensorflow as tf
 from tensorflow.keras import layers, models
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
+import pandas as pd
 
-# Core functionality classes and functions
 def preprocess_esp32_csi(csi_data, window_size=50):
     """
     Preprocess ESP32 CSI data
     
     Args:
         csi_data: Raw CSI amplitude data (n_samples, n_subcarriers)
-                  Using 30 subcarriers for ESP32
         window_size: Number of packets per capture (default: 50)
     
     Returns:
         Processed features ready for neural network
     """
     n_samples = len(csi_data)
-    n_features = csi_data.shape[1]
     windows = []
     
-    # Create sliding windows
     for i in range(0, n_samples - window_size + 1):
         window = csi_data[i:i + window_size]
-        
-        # Extract features from window
         features = []
         # Mean of each subcarrier
         features.extend(np.mean(window, axis=0))
@@ -38,84 +33,164 @@ def preprocess_esp32_csi(csi_data, window_size=50):
     
     return np.array(windows)
 
-class ESP32CSIModel:
+class ESP32CSIMultiTaskModel:
     def __init__(self, input_shape=(30, 50)):
         """
-        Initialize ESP32 CSI Model
+        Initialize ESP32 CSI Model for both presence detection and location prediction
         
         Args:
             input_shape: Tuple of (n_subcarriers, window_size)
-                         (30, 50) for ESP32 data
         """
         self.input_shape = input_shape
         self.model = self._build_model()
         
     def _build_model(self):
-        """Build neural network architecture adapted for ESP32 CSI data"""
-        model = models.Sequential([
-            layers.Input(shape=(*self.input_shape, 1)),
-            
-            layers.Conv2D(4, 3, padding='same'),
-            layers.BatchNormalization(),
-            layers.ReLU(),
-            layers.MaxPooling2D(2, strides=2),
-            
-            layers.Conv2D(8, 3, padding='same'),
-            layers.BatchNormalization(),
-            layers.ReLU(),
-            layers.MaxPooling2D(2, strides=2),
-            
-            layers.Conv2D(16, 3, padding='same'),
-            layers.BatchNormalization(),
-            layers.ReLU(),
-            layers.Dropout(0.1),
-            
-            layers.Flatten(),
-            layers.Dense(32, activation='relu'),
-            layers.Dense(2, activation='softmax')
-        ])
+        """Build neural network architecture for multi-task learning"""
+        # Input layer
+        inputs = layers.Input(shape=(*self.input_shape, 1))
+        
+        # Shared layers
+        x = layers.Conv2D(16, 3, padding='same')(inputs)
+        x = layers.BatchNormalization()(x)
+        x = layers.ReLU()(x)
+        x = layers.MaxPooling2D(2, strides=2)(x)
+        
+        x = layers.Conv2D(32, 3, padding='same')(x)
+        x = layers.BatchNormalization()(x)
+        x = layers.ReLU()(x)
+        x = layers.MaxPooling2D(2, strides=2)(x)
+        
+        x = layers.Conv2D(64, 3, padding='same')(x)
+        x = layers.BatchNormalization()(x)
+        x = layers.ReLU()(x)
+        x = layers.Dropout(0.2)(x)
+        
+        shared_features = layers.Flatten()(x)
+        
+        # Presence detection branch
+        presence_hidden = layers.Dense(32, activation='relu')(shared_features)
+        presence_output = layers.Dense(1, activation='sigmoid', name='presence')(presence_hidden)
+        
+        # Location prediction branch
+        location_hidden = layers.Dense(64, activation='relu')(shared_features)
+        location_hidden = layers.Dense(32, activation='relu')(location_hidden)
+        location_output = layers.Dense(2, name='location')(location_hidden)
+        
+        # Create model with multiple outputs
+        model = models.Model(
+            inputs=inputs,
+            outputs=[presence_output, location_output]
+        )
+        
+        # Custom loss for location prediction that only applies when person is present
+        def masked_mse(y_true, y_pred):
+            # Create mask where presence is True (1)
+            presence_mask = y_true[:, 0] != -1
+            # Expand mask to match prediction shape
+            mask = tf.stack([presence_mask, presence_mask], axis=1)
+            # Calculate MSE only for present cases
+            mse = tf.keras.losses.mean_squared_error(y_true, y_pred)
+            masked_mse = tf.reduce_mean(tf.boolean_mask(mse, mask))
+            return masked_mse
+        
+        # Custom metric for location prediction accuracy
+        def location_mae(y_true, y_pred):
+            presence_mask = y_true[:, 0] != -1
+            mask = tf.stack([presence_mask, presence_mask], axis=1)
+            mae = tf.keras.losses.mean_absolute_error(y_true, y_pred)
+            return tf.reduce_mean(tf.boolean_mask(mae, mask))
         
         model.compile(
             optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
-            loss='sparse_categorical_crossentropy',
-            metrics=['accuracy']
+            loss={
+                'presence': 'binary_crossentropy',
+                'location': masked_mse
+            },
+            metrics={
+                'presence': ['accuracy'],
+                'location': [location_mae]
+            },
+            loss_weights={
+                'presence': 1.0,
+                'location': 0.5  # Adjust this weight to balance the tasks
+            }
         )
         
         return model
 
-def prepare_esp32_data(csi_data, labels, train_ratio=0.8):
+def parse_csi_data(csi_string):
     """
-    Prepare ESP32 CSI data for training
+    Parse CSI data from string format to numpy array
     
     Args:
-        csi_data: Raw CSI data from ESP32 (n_samples, 30, 50)
-        labels: Binary labels (0: absent, 1: present)
-        train_ratio: Ratio of training data
+        csi_string: String containing CSI data in array format
+        
+    Returns:
+        numpy array of CSI values
+    """
+    # Remove brackets and split into values
+    values = csi_string.strip('[]').split()
+    # Convert to float array
+    return np.array([float(x) for x in values])
+
+def prepare_esp32_data_multitask(csv_file, window_size=50):
+    """
+    Prepare ESP32 CSI data for multi-task learning
+    
+    Args:
+        csv_file: Path to CSV file containing CSI data
+        window_size: Number of packets per window
     
     Returns:
         Processed data ready for training
     """
-    if len(csi_data.shape) == 2:
-        n_samples = csi_data.shape[0] // 50  # Using 50 packets per capture
-        csi_data = csi_data[:n_samples * 50].reshape(n_samples, -1, 50)
+    # Read CSV file
+    df = pd.read_csv(csv_file)
     
-    csi_data = csi_data[..., np.newaxis]
+    # Extract CSI data from the CSV
+    csi_data = df['CSI_DATA'].apply(parse_csi_data).values
+    csi_data = np.stack(csi_data)
     
-    X_train, X_val, y_train, y_val = train_test_split(
-        csi_data, labels[:len(csi_data)],
-        train_size=train_ratio,
+    # Extract labels
+    presence_labels = df['state'].values
+    locations = df[['locationX', 'locationY']].values
+    
+    # Reshape CSI data into windows
+    n_samples = len(csi_data) // window_size
+    csi_windows = csi_data[:n_samples * window_size].reshape(n_samples, -1, window_size)
+    
+    # Add channel dimension for Conv2D
+    csi_windows = csi_windows[..., np.newaxis]
+    
+    # Prepare corresponding labels for windows
+    # Take the most common presence value in each window
+    presence_windows = np.array([
+        np.bincount(presence_labels[i:i+window_size]).argmax()
+        for i in range(0, n_samples * window_size, window_size)
+    ])
+    
+    # Take the mean of valid locations in each window
+    location_windows = np.array([
+        np.mean(locations[i:i+window_size], axis=0)
+        if presence_windows[i//window_size] == 1
+        else np.array([-1, -1])
+        for i in range(0, n_samples * window_size, window_size)
+    ])
+    
+    return train_test_split(
+        csi_windows,
+        presence_windows,
+        location_windows,
+        test_size=0.2,
         random_state=42
     )
-    
-    return (X_train, y_train), (X_val, y_val)
 
-def train_esp32_model(csi_data, labels, input_shape=(30, 50), epochs=10, batch_size=8):
+def train_esp32_multitask_model(csv_file, input_shape=(30, 50), epochs=10, batch_size=8):
     """
-    Train the ESP32 CSI classifier
+    Train the ESP32 CSI multi-task model
     
     Args:
-        csi_data: Raw CSI data from ESP32
-        labels: Binary labels
+        csv_file: Path to CSV file containing CSI data
         input_shape: Shape of input data (n_subcarriers, window_size)
         epochs: Number of training epochs
         batch_size: Size of training batches
@@ -123,17 +198,29 @@ def train_esp32_model(csi_data, labels, input_shape=(30, 50), epochs=10, batch_s
     Returns:
         Trained model and training history
     """
-    (X_train, y_train), (X_val, y_val) = prepare_esp32_data(
-        csi_data, labels
-    )
+    # Prepare data
+    X_train, X_val, y_train_presence, y_val_presence, y_train_location, y_val_location = \
+        prepare_esp32_data_multitask(csv_file)
     
-    model = ESP32CSIModel(input_shape=input_shape)
+    # Initialize model
+    model = ESP32CSIMultiTaskModel(input_shape=input_shape)
     
+    # Train model
     history = model.model.fit(
-        X_train, y_train,
+        X_train,
+        {
+            'presence': y_train_presence,
+            'location': y_train_location
+        },
+        validation_data=(
+            X_val,
+            {
+                'presence': y_val_presence,
+                'location': y_val_location
+            }
+        ),
         epochs=epochs,
         batch_size=batch_size,
-        validation_data=(X_val, y_val),
         callbacks=[
             tf.keras.callbacks.EarlyStopping(
                 monitor='val_loss',
@@ -152,24 +239,62 @@ def train_esp32_model(csi_data, labels, input_shape=(30, 50), epochs=10, batch_s
     return model, history
 
 def plot_training_results(history):
-    """Plot training metrics"""
-    plt.figure(figsize=(12, 4))
+    """
+    Plot training metrics for multi-task model
     
-    plt.subplot(1, 2, 1)
-    plt.plot(history.history['loss'], label='Training Loss')
-    plt.plot(history.history['val_loss'], label='Validation Loss')
-    plt.title('Model Loss')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.legend()
+    Args:
+        history: Training history from model.fit()
+    """
+    plt.figure(figsize=(15, 5))
     
-    plt.subplot(1, 2, 2)
-    plt.plot(history.history['accuracy'], label='Training Accuracy')
-    plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
-    plt.title('Model Accuracy')
+    # Plot presence detection metrics
+    plt.subplot(1, 3, 1)
+    plt.plot(history.history['presence_accuracy'], label='Training Accuracy')
+    plt.plot(history.history['val_presence_accuracy'], label='Validation Accuracy')
+    plt.title('Presence Detection Accuracy')
     plt.xlabel('Epoch')
     plt.ylabel('Accuracy')
     plt.legend()
     
+    # Plot presence detection loss
+    plt.subplot(1, 3, 2)
+    plt.plot(history.history['presence_loss'], label='Training Loss')
+    plt.plot(history.history['val_presence_loss'], label='Validation Loss')
+    plt.title('Presence Detection Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend()
+    
+    # Plot location prediction loss
+    plt.subplot(1, 3, 3)
+    plt.plot(history.history['location_loss'], label='Training MAE')
+    plt.plot(history.history['val_location_loss'], label='Validation MAE')
+    plt.title('Location Prediction MAE')
+    plt.xlabel('Epoch')
+    plt.ylabel('Mean Absolute Error')
+    plt.legend()
+    
     plt.tight_layout()
     plt.show()
+
+def visualize_predictions(model, X_test, y_test_presence, y_test_location, num_samples=5):
+    """
+    Visualize model predictions
+    
+    Args:
+        model: Trained ESP32CSIMultiTaskModel
+        X_test: Test input data
+        y_test_presence: True presence labels
+        y_test_location: True location coordinates
+        num_samples: Number of samples to visualize
+    """
+    # Get predictions
+    presence_pred, location_pred = model.model.predict(X_test[:num_samples])
+    
+    # Print results
+    for i in range(num_samples):
+        print(f"\nSample {i+1}:")
+        print(f"Presence: True={y_test_presence[i]}, Predicted={presence_pred[i][0]:.2f}")
+        if y_test_presence[i] == 1:
+            print(f"Location: True=({y_test_location[i][0]:.1f}, {y_test_location[i][1]:.1f}), "
+                  f"Predicted=({location_pred[i][0]:.1f}, {location_pred[i][1]:.1f})")
