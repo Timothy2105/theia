@@ -1,6 +1,6 @@
 # Theia
 
-Tired of not being able to see through walls? Want to detect presence without cameras? Theia lets you do just that! Using ESP32's WiFi signals and machine learning, this project turns your space into a smart sensing environment - no cameras or motion sensors needed.
+Tired of not being able to see through walls? Want to detect presence without cameras? Theia lets you do just that! Using ESP32's WiFi signals and machine learning, we finally achieve somewhat X-ray vision.
 
 ## Features
 
