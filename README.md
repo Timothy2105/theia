@@ -1,2 +1,2 @@
 # theia
-![imagedoc-lightnoise](https://github.com/user-attachments/assets/106a181a-5dbc-4249-887c-1c95a9747d16)
+![image](https://github.com/user-attachments/assets/f10bb6d5-291a-4ec1-9468-9810592bad3c)
