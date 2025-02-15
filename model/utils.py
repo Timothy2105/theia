@@ -11,6 +11,7 @@ def preprocess_esp32_csi(csi_data, window_size=50):
     
     Args:
         csi_data: Raw CSI amplitude data (n_samples, n_subcarriers)
+                 Using 128 subcarriers for ESP32
         window_size: Number of packets per capture (default: 50)
     
     Returns:
@@ -34,7 +35,7 @@ def preprocess_esp32_csi(csi_data, window_size=50):
     return np.array(windows)
 
 class ESP32CSIMultiTaskModel:
-    def __init__(self, input_shape=(30, 50)):
+    def __init__(self, input_shape=(128, 50)):
         """
         Initialize ESP32 CSI Model for both presence detection and location prediction
         
@@ -84,21 +85,26 @@ class ESP32CSIMultiTaskModel:
         
         # Custom loss for location prediction that only applies when person is present
         def masked_mse(y_true, y_pred):
-            # Create mask where presence is True (1)
+            # Convert inputs to float32
+            y_true = tf.cast(y_true, tf.float32)
+            y_pred = tf.cast(y_pred, tf.float32)
+            
             presence_mask = y_true[:, 0] != -1
-            # Expand mask to match prediction shape
-            mask = tf.stack([presence_mask, presence_mask], axis=1)
-            # Calculate MSE only for present cases
-            mse = tf.keras.losses.mean_squared_error(y_true, y_pred)
-            masked_mse = tf.reduce_mean(tf.boolean_mask(mse, mask))
+            squared_error = tf.square(y_true - y_pred)
+            mse = tf.reduce_mean(squared_error, axis=-1)
+            masked_mse = tf.reduce_mean(tf.boolean_mask(mse, presence_mask))
             return masked_mse
         
         # Custom metric for location prediction accuracy
         def location_mae(y_true, y_pred):
+            # Convert inputs to float32
+            y_true = tf.cast(y_true, tf.float32)
+            y_pred = tf.cast(y_pred, tf.float32)
+            
             presence_mask = y_true[:, 0] != -1
-            mask = tf.stack([presence_mask, presence_mask], axis=1)
-            mae = tf.keras.losses.mean_absolute_error(y_true, y_pred)
-            return tf.reduce_mean(tf.boolean_mask(mae, mask))
+            absolute_error = tf.abs(y_true - y_pred)
+            mae = tf.reduce_mean(absolute_error, axis=-1)
+            return tf.reduce_mean(tf.boolean_mask(mae, presence_mask))
         
         model.compile(
             optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
@@ -177,6 +183,11 @@ def prepare_esp32_data_multitask(csv_file, window_size=50):
         for i in range(0, n_samples * window_size, window_size)
     ])
     
+    # Convert data types to float32
+    csi_windows = csi_windows.astype(np.float32)
+    presence_windows = presence_windows.astype(np.float32)
+    location_windows = location_windows.astype(np.float32)
+    
     return train_test_split(
         csi_windows,
         presence_windows,
@@ -185,7 +196,7 @@ def prepare_esp32_data_multitask(csv_file, window_size=50):
         random_state=42
     )
 
-def train_esp32_multitask_model(csv_file, input_shape=(30, 50), epochs=10, batch_size=8):
+def train_esp32_multitask_model(csv_file, input_shape=(128, 50), epochs=10, batch_size=8):
     """
     Train the ESP32 CSI multi-task model
     
