@@ -1,0 +1,45 @@
+import pandas as pd
+import time
+import random
+
+columns = ["timestamp", "type", "role", "mac", "rssi", "rate", "sig_mode", "bandwidth", "real", "imag"]
+df = pd.DataFrame(columns=columns)
+
+# Function to simulate receiving CSI data
+def collect_csi_data():
+    # Simulating CSI data in the required format
+    data = {
+        "timestamp": time.time(),
+        "type": "Data",
+        "role": "AP",
+        "mac": "00:11:22:33:44:55",
+        "rssi": random.randint(-100, -30),  # Simulated RSSI value
+        "rate": random.choice([72, 144, 300, 600]),  # Simulated data rate
+        "sig_mode": random.choice([1, 2]),  # Signal modes (just an example)
+        "bandwidth": 20,  # Assuming a 20MHz bandwidth
+        "real": [random.uniform(-1, 1) for _ in range(30)],  # Simulating 30 subcarriers
+        "imag": [random.uniform(-1, 1) for _ in range(30)]   # Simulating 30 subcarriers
+    }
+    
+    return data
+
+# Function to save data to CSV
+def save_data_to_csv(data, csv_filename="csi_data.csv"):
+    # Convert real and imaginary parts to strings (for CSV compatibility)
+    data["real"] = str(data["real"])
+    data["imag"] = str(data["imag"])
+    
+    # Append the data to the DataFrame
+    global df
+    df = df.append(data, ignore_index=True)
+    
+    # Write DataFrame to CSV
+    df.to_csv(csv_filename, index=False)
+
+# Simulate data collection and saving every 1 second
+for _ in range(10):  # Simulate 10 data entries (can be increased)
+    csi_data = collect_csi_data()
+    save_data_to_csv(csi_data, "csi_data.csv")
+    time.sleep(1)  # Simulate a 1-second interval between data collection
+
+print("CSI data has been collected and saved to csi_data.csv.")
