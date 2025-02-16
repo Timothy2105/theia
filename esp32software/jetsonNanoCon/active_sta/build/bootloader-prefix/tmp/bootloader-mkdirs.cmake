@@ -10,18 +10,18 @@ if(NOT EXISTS "/home/river/esp/esp-idf-v4.3/components/bootloader/subproject")
   file(MAKE_DIRECTORY "/home/river/esp/esp-idf-v4.3/components/bootloader/subproject")
 endif()
 file(MAKE_DIRECTORY
-  "/home/river/Documents/GitHub/esp32-csi-tool/active_sta/build/bootloader"
-  "/home/river/Documents/GitHub/esp32-csi-tool/active_sta/build/bootloader-prefix"
-  "/home/river/Documents/GitHub/esp32-csi-tool/active_sta/build/bootloader-prefix/tmp"
-  "/home/river/Documents/GitHub/esp32-csi-tool/active_sta/build/bootloader-prefix/src/bootloader-stamp"
-  "/home/river/Documents/GitHub/esp32-csi-tool/active_sta/build/bootloader-prefix/src"
-  "/home/river/Documents/GitHub/esp32-csi-tool/active_sta/build/bootloader-prefix/src/bootloader-stamp"
+  "/home/river/Documents/GitHub/theia/esp32software/jetsonNanoCon/active_sta/build/bootloader"
+  "/home/river/Documents/GitHub/theia/esp32software/jetsonNanoCon/active_sta/build/bootloader-prefix"
+  "/home/river/Documents/GitHub/theia/esp32software/jetsonNanoCon/active_sta/build/bootloader-prefix/tmp"
+  "/home/river/Documents/GitHub/theia/esp32software/jetsonNanoCon/active_sta/build/bootloader-prefix/src/bootloader-stamp"
+  "/home/river/Documents/GitHub/theia/esp32software/jetsonNanoCon/active_sta/build/bootloader-prefix/src"
+  "/home/river/Documents/GitHub/theia/esp32software/jetsonNanoCon/active_sta/build/bootloader-prefix/src/bootloader-stamp"
 )
 
 set(configSubDirs )
 foreach(subDir IN LISTS configSubDirs)
-    file(MAKE_DIRECTORY "/home/river/Documents/GitHub/esp32-csi-tool/active_sta/build/bootloader-prefix/src/bootloader-stamp/${subDir}")
+    file(MAKE_DIRECTORY "/home/river/Documents/GitHub/theia/esp32software/jetsonNanoCon/active_sta/build/bootloader-prefix/src/bootloader-stamp/${subDir}")
 endforeach()
 if(cfgdir)
-  file(MAKE_DIRECTORY "/home/river/Documents/GitHub/esp32-csi-tool/active_sta/build/bootloader-prefix/src/bootloader-stamp${cfgdir}") # cfgdir has leading slash
+  file(MAKE_DIRECTORY "/home/river/Documents/GitHub/theia/esp32software/jetsonNanoCon/active_sta/build/bootloader-prefix/src/bootloader-stamp${cfgdir}") # cfgdir has leading slash
 endif()

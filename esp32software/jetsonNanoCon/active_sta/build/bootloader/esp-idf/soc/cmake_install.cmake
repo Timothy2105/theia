@@ -39,7 +39,7 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
-  include("/home/river/Documents/GitHub/esp32-csi-tool/active_sta/build/bootloader/esp-idf/soc/esp32/cmake_install.cmake")
+  include("/home/river/Documents/GitHub/theia/esp32software/jetsonNanoCon/active_sta/build/bootloader/esp-idf/soc/esp32/cmake_install.cmake")
 
 endif()
 

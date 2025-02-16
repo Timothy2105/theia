@@ -1,13 +1,13 @@
 # Target labels
  bootloader
 # Source files and their labels
-/home/river/Documents/GitHub/esp32-csi-tool/active_sta/build/CMakeFiles/bootloader
-/home/river/Documents/GitHub/esp32-csi-tool/active_sta/build/CMakeFiles/bootloader.rule
-/home/river/Documents/GitHub/esp32-csi-tool/active_sta/build/CMakeFiles/bootloader-complete.rule
-/home/river/Documents/GitHub/esp32-csi-tool/active_sta/build/bootloader-prefix/src/bootloader-stamp/bootloader-build.rule
-/home/river/Documents/GitHub/esp32-csi-tool/active_sta/build/bootloader-prefix/src/bootloader-stamp/bootloader-configure.rule
-/home/river/Documents/GitHub/esp32-csi-tool/active_sta/build/bootloader-prefix/src/bootloader-stamp/bootloader-download.rule
-/home/river/Documents/GitHub/esp32-csi-tool/active_sta/build/bootloader-prefix/src/bootloader-stamp/bootloader-install.rule
-/home/river/Documents/GitHub/esp32-csi-tool/active_sta/build/bootloader-prefix/src/bootloader-stamp/bootloader-mkdir.rule
-/home/river/Documents/GitHub/esp32-csi-tool/active_sta/build/bootloader-prefix/src/bootloader-stamp/bootloader-patch.rule
-/home/river/Documents/GitHub/esp32-csi-tool/active_sta/build/bootloader-prefix/src/bootloader-stamp/bootloader-update.rule
+/home/river/Documents/GitHub/theia/esp32software/jetsonNanoCon/active_sta/build/CMakeFiles/bootloader
+/home/river/Documents/GitHub/theia/esp32software/jetsonNanoCon/active_sta/build/CMakeFiles/bootloader.rule
+/home/river/Documents/GitHub/theia/esp32software/jetsonNanoCon/active_sta/build/CMakeFiles/bootloader-complete.rule
+/home/river/Documents/GitHub/theia/esp32software/jetsonNanoCon/active_sta/build/bootloader-prefix/src/bootloader-stamp/bootloader-build.rule
+/home/river/Documents/GitHub/theia/esp32software/jetsonNanoCon/active_sta/build/bootloader-prefix/src/bootloader-stamp/bootloader-configure.rule
+/home/river/Documents/GitHub/theia/esp32software/jetsonNanoCon/active_sta/build/bootloader-prefix/src/bootloader-stamp/bootloader-download.rule
+/home/river/Documents/GitHub/theia/esp32software/jetsonNanoCon/active_sta/build/bootloader-prefix/src/bootloader-stamp/bootloader-install.rule
+/home/river/Documents/GitHub/theia/esp32software/jetsonNanoCon/active_sta/build/bootloader-prefix/src/bootloader-stamp/bootloader-mkdir.rule
+/home/river/Documents/GitHub/theia/esp32software/jetsonNanoCon/active_sta/build/bootloader-prefix/src/bootloader-stamp/bootloader-patch.rule
+/home/river/Documents/GitHub/theia/esp32software/jetsonNanoCon/active_sta/build/bootloader-prefix/src/bootloader-stamp/bootloader-update.rule
