@@ -9,6 +9,9 @@ from watchdog.events import FileSystemEventHandler
 import argparse
 import re
 
+from threading import Thread
+from server import start, put_message
+
 # Add the parent directory to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from model.utils import ESP32CSIMultiTaskModel, parse_csi_data
@@ -134,6 +137,7 @@ class CSIFileHandler(FileSystemEventHandler):
                 prediction = self.process_txt()
                 if prediction:
                     self.save_prediction(prediction)
+                    put_message(prediction)
                     print("Prediction saved successfully")
             
         except Exception as e:
@@ -191,6 +195,9 @@ if __name__ == "__main__":
     parser.add_argument('--weights', required=True, help='Path to model weights file (best_weights.h5)')
     
     args = parser.parse_args()
+
+    tcp_server_thread = Thread(target=start, args=(2025,))
+    tcp_server_thread.start()
     
     print(f"Current working directory: {os.getcwd()}")
     print(f"Input file: {args.input}")
@@ -198,3 +205,4 @@ if __name__ == "__main__":
     print(f"Weights file: {args.weights}")
     
     start_monitoring(args.input, args.output, args.weights)
+    tcp_server_thread.join()
