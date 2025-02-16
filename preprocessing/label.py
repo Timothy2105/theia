@@ -24,7 +24,7 @@ def label_data():
 
 	for i, txt_in in enumerate(txt_files, 1):
 		# Extract x, y, state from filename (raw-x-y-state-version.txt)
-		match = re.match(r'csi-(\d+)-(\d+)-(\d+)-(\d+)\.txt', txt_in)
+		match = re.match(r'csi_(\d+)_(\d+)_(\d+)_(\d+)\.txt', txt_in)
 		if match:
 			x_str, y_str, state, version = match.groups()
 			state = int(state)
@@ -46,7 +46,7 @@ def label_data():
 			continue
 
 		input_path = os.path.join(raw_data_dir, txt_in)
-		output_path = os.path.join('labelled-data', f"labelled-{x_str}-{y_str}-{state}-{version}.csv")
+		output_path = os.path.join('labelled-data', f"labelled_{x_str}_{y_str}_{state}_{version}.csv")
 		
 		print(f"Processing...")
 		
