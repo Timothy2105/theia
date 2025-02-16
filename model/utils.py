@@ -196,7 +196,7 @@ def prepare_esp32_data_multitask(csv_file, window_size=50):
         random_state=42
     )
 
-def train_esp32_multitask_model(csv_file, input_shape=(128, 50), epochs=25, batch_size=19):
+def train_esp32_multitask_model(csv_file, input_shape=(128, 50), epochs=25, batch_size=12):
     """
     Train the ESP32 CSI multi-task model
     
