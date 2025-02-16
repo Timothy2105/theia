@@ -1,6 +1,6 @@
 #!/bin/bash
 
-WEIGHTS_PATH="weights/weights_v15.h5"
+WEIGHTS_PATH="weights/bets_model_v16.h5"
 CSI_DATA_PATH="/home/river/Documents/csi_data/csi_live.txt"
 PREDICTION_PATH="/home/river/Documents/csi_data/predictions.txt"
 
