@@ -1,4 +1,4 @@
-# Install script for directory: /home/river/Documents/GitHub/esp32-csi-tool/active_sta/main
+# Install script for directory: /home/river/Documents/GitHub/theia/esp32software/jetsonNanoCon/active_sta/main
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

@@ -1,4 +1,4 @@
-/* * Data converted from /home/river/Documents/GitHub/esp32-csi-tool/active_sta/build/esp-idf/mbedtls/x509_crt_bundle
+/* * Data converted from /home/river/Documents/GitHub/theia/esp32software/jetsonNanoCon/active_sta/build/esp-idf/mbedtls/x509_crt_bundle
  */
 .data
 .section .rodata.embedded

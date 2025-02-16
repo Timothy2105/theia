@@ -39,7 +39,7 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
-  include("/home/river/Documents/GitHub/esp32-csi-tool/active_ap/build/bootloader/esp-idf/cmake_install.cmake")
+  include("/home/river/Documents/GitHub/theia/esp32software/jetsonNanoCon/active_ap/build/bootloader/esp-idf/cmake_install.cmake")
 
 endif()
 
@@ -58,6 +58,6 @@ endif()
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-  file(WRITE "/home/river/Documents/GitHub/esp32-csi-tool/active_ap/build/bootloader/${CMAKE_INSTALL_MANIFEST}"
+  file(WRITE "/home/river/Documents/GitHub/theia/esp32software/jetsonNanoCon/active_ap/build/bootloader/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
 endif()
