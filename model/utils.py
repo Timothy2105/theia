@@ -107,7 +107,7 @@ class ESP32CSIMultiTaskModel:
             return tf.reduce_mean(tf.boolean_mask(mae, presence_mask))
         
         model.compile(
-            optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+            optimizer=tf.keras.optimizers.Adam(learning_rate=5e-4),
             loss={
                 'presence': 'binary_crossentropy',
                 'location': masked_mse
@@ -196,7 +196,7 @@ def prepare_esp32_data_multitask(csv_file, window_size=50):
         random_state=42
     )
 
-def train_esp32_multitask_model(csv_file, input_shape=(128, 50), epochs=10, batch_size=8):
+def train_esp32_multitask_model(csv_file, input_shape=(128, 50), epochs=25, batch_size=19):
     """
     Train the ESP32 CSI multi-task model
     
@@ -301,21 +301,23 @@ def visualize_predictions(model, X_test, y_test_presence, y_test_location, num_s
     """
     # Get predictions
     presence_pred, location_pred = model.model.predict(X_test[:num_samples])
+    # Convert binary predictions to integers: values > 0.5 become 1, otherwise 0.
+    presence_pred = (presence_pred > 0.5).astype(np.int32)
     
     # Print results
     for i in range(num_samples):
         print(f"\nSample {i+1}:")
-        print(f"Presence: True={y_test_presence[i]}, Predicted={presence_pred[i][0]:.2f}")
+        print(f"Presence: True={y_test_presence[i]}, Predicted={presence_pred[i][0]}")
         if y_test_presence[i] == 1:
             print(f"Location: True=({y_test_location[i][0]:.1f}, {y_test_location[i][1]:.1f}), "
                   f"Predicted=({location_pred[i][0]:.1f}, {location_pred[i][1]:.1f})")
-            
+
 def evaluate_predictions(model, test_csv_path, window_size=50):
     """
     Evaluate model predictions on test data
     
     Args:
-        model: Trained ESP32CSIMultiTaskModel
+        model: Trained ESP32CSIMultiTaskModel or Keras model with multi-output
         test_csv_path: Path to test CSV file
         window_size: Size of the window for CSI data
         
@@ -341,6 +343,8 @@ def evaluate_predictions(model, test_csv_path, window_size=50):
     
     # Get predictions
     presence_pred, location_pred = model.predict(csi_windows)
+    # Convert binary predictions to integers: values > 0.5 become 1, otherwise 0.
+    presence_pred = (presence_pred > 0.5).astype(np.int32)
     
     # Prepare ground truth for windows
     presence_windows = np.array([
@@ -349,7 +353,7 @@ def evaluate_predictions(model, test_csv_path, window_size=50):
     ])
     
     # Calculate presence accuracy
-    presence_accuracy = np.mean((presence_pred > 0.5) == presence_windows)
+    presence_accuracy = np.mean(presence_pred.squeeze() == presence_windows)
     
     # Check if there are any presence detections
     if not np.any(presence_windows == 1):
@@ -384,7 +388,7 @@ def evaluate_predictions(model, test_csv_path, window_size=50):
     print("\nDetailed results for first 5 samples:")
     for i in range(min(5, len(presence_windows))):
         print(f"\nSample {i+1}:")
-        print(f"Presence: True={presence_windows[i]}, Predicted={presence_pred[i][0]:.2f}")
+        print(f"Presence: True={presence_windows[i]}, Predicted={presence_pred[i][0]}")
         if presence_windows[i] == 1:
             print(f"Location: True=({location_windows[i][0]:.1f}, {location_windows[i][1]:.1f}), "
                   f"Predicted=({location_pred[i][0]:.1f}, {location_pred[i][1]:.1f})")
@@ -400,6 +404,7 @@ def evaluate_predictions(model, test_csv_path, window_size=50):
         'location_mae': location_mae,
         'n_samples': n_samples
     }
+
 
 def run_predictions(model_path, test_csv_path):
     """

@@ -2,50 +2,73 @@ import pandas as pd
 import os
 import re
 
+def parse_csi_line(line):
+	"""Extract CSI data from a line of text"""
+	match = re.search(r'\[(.*?)\]', line)
+	if match:
+		return match.group(0)
+	return None
+
 def label_data():
-	"""Process and label raw CSI data files"""
+	"""Process and label raw CSI data files from txt format"""
 	# Create labelled-data directory if it doesn't exist
 	os.makedirs('labelled-data', exist_ok=True)
 	
-	# Get all CSV files from raw-data directory
+	# Get all TXT files from raw-data directory
 	raw_data_dir = 'raw-data'
-	csv_files = [f for f in os.listdir(raw_data_dir) if f.endswith('.csv')]
+	txt_files = [f for f in os.listdir(raw_data_dir) if f.endswith('.txt')]
 	
-	print(f"\nFound {len(csv_files)} CSV files:")
-	for i, file in enumerate(csv_files, 1):
+	print(f"\nFound {len(txt_files)} TXT files:")
+	for i, file in enumerate(txt_files, 1):
 		print(f"{i}. {file}")
 
-	for i, csv_in in enumerate(csv_files, 1):
-		# Extract x, y, state from filename (raw-x-y-state-version.csv)
-		match = re.match(r'raw-([n\d]+)-([n\d]+)-(\d+)-(\d+)\.csv', csv_in)
+	for i, txt_in in enumerate(txt_files, 1):
+		# Extract x, y, state from filename (raw-x-y-state-version.txt)
+		match = re.match(r'csi_(\d+)_(\d+)_(\d+)_(\d+)\.txt', txt_in)
 		if match:
 			x_str, y_str, state, version = match.groups()
-			x = -1 if x_str == 'n' else int(x_str)
-			y = -1 if y_str == 'n' else int(y_str)
 			state = int(state)
+			
+			# If state is 0 (not present), use 0,0 for coordinates
+			# If state is 1 (present), use coordinates from filename
+			if state == 0:
+				x, y = 0, 0
+			else:
+				x = int(x_str)
+				y = int(y_str)
+			
 			version = int(version)
 			
-			print(f"\nFile {i}/{len(csv_files)}: {csv_in}")
+			print(f"\nFile {i}/{len(txt_files)}: {txt_in}")
 			print(f"Extracted: x={x}, y={y}, state={state}, version={version}")
 		else:
-			print(f"\nSkipping {csv_in} - doesn't match expected format")
+			print(f"\nSkipping {txt_in} - doesn't match expected format")
 			continue
 
-		input_path = os.path.join(raw_data_dir, csv_in)
-		output_path = os.path.join('labelled-data', f"labelled-{x_str}-{y_str}-{state}-{version}.csv")
+		input_path = os.path.join(raw_data_dir, txt_in)
+		output_path = os.path.join('labelled-data', f"labelled_{x_str}_{y_str}_{state}_{version}.csv")
 		
 		print(f"Processing...")
-		data = pd.read_csv(input_path)
+		
+		# Read and process the text file
+		csi_data = []
+		with open(input_path, 'r') as f:
+			for line in f:
+				csi_str = parse_csi_line(line)
+				if csi_str:
+					csi_data.append(csi_str)
+		
+		# Create DataFrame
+		data = pd.DataFrame({
+			'CSI_DATA': csi_data,
+			'locationX': x,
+			'locationY': y,
+			'state': state
+		})
 
-		data["locationX"] = x
-		data["locationY"] = y
-		data["state"] = state
-
-		want = data[["CSI_DATA", "state", "locationX", "locationY"]]
-		print(want.head())
-
+		print(data.head())
 		print(f"Writing to {output_path}")
-		want.to_csv(output_path, index=False)
+		data.to_csv(output_path, index=False)
 
 if __name__ == "__main__":
 	label_data()

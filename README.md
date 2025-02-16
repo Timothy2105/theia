@@ -1,43 +1,27 @@
 # Theia
-
 Tired of not being able to see through walls? Want to detect presence without cameras? Theia lets you do just that! Using ESP32's WiFi signals and machine learning, we finally achieve somewhat X-ray vision.
 
 ## Features
-
 - Real-time presence detection using ESP32 WiFi CSI data
 - Convolutional Neural Network (CNN) based classification
-- Data preprocessing pipeline for CSI signals
+- Data preprocessing pipeline for CSI signals  
 - Training and validation visualization tools
 
-## Technical Stack
+## Model Architecture 
+Our neural network uses a sophisticated multi-task architecture designed specifically for processing WiFi CSI data:
 
-- TensorFlow for deep learning
-- Python for data processing
-- ESP32 for CSI data collection
-- scikit-learn for data preparation
+The Input Layer takes raw CSI amplitude data from 128 WiFi subcarriers sampled across 50 time windows. The data first passes through batch normalization to ensure stable training.
 
-## Requirements
+Next is our Feature Extraction backbone consisting of 3 convolutional blocks with progressively increasing filters (16, 32, and 64). Each block contains a 2D convolution with 3x3 kernels, followed by batch normalization, ReLU activation, and 2x2 max pooling. We add a dropout layer (0.2) after the final convolution to prevent overfitting.
 
-- Python 3.x
-- TensorFlow
-- NumPy
-- scikit-learn
-- matplotlib
+The network then splits into two task-specific branches:
+- The Presence Detection branch flattens the features and passes them through a Dense layer with 32 units and ReLU activation, followed by a binary classification output with sigmoid activation
+- The Location Estimation branch also flattens but uses two Dense layers (64 and 32 units) with ReLU before outputting 2D coordinates
+
+This dual-task architecture allows simultaneous training of both presence detection and location estimation, improving overall performance through shared feature learning.
 
 ## Usage
-
 1. Collect CSI data from ESP32
-2. Process the data using the preprocessing functions
+2. Process the data using the preprocessing functions  
 3. Train the model using the provided notebook
 4. Deploy the trained model for real-time detection
-
-## Model Architecture
-
-The system uses a CNN architecture specifically designed for ESP32 CSI data, featuring:
-
-- Multiple convolutional layers
-- Batch normalization
-- Dropout for regularization
-- Binary classification output (presence/absence)
-
-![original_6007bc307096aa8b554ce14109ba0186](https://github.com/user-attachments/assets/e3d5a99d-bc25-4bbf-b4a4-d05a70703d79)

@@ -1,0 +1,5 @@
+source "/home/river/esp/esp-idf-v4.3/components/app_update/Kconfig.projbuild"
+source "/home/river/esp/esp-idf-v4.3/components/bootloader/Kconfig.projbuild"
+source "/home/river/esp/esp-idf-v4.3/components/esptool_py/Kconfig.projbuild"
+source "/home/river/esp/esp-idf-v4.3/components/partition_table/Kconfig.projbuild"
+source "/home/river/Documents/GitHub/esp32-csi-tool/active_sta/main/Kconfig.projbuild"
