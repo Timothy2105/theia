@@ -8,7 +8,7 @@ import struct
 q = Queue()
 
 def pack_msg(msg: tuple[int, int, int]) -> bytes:
-    m = struct.pack("!iii", *msg)
+    m = struct.pack("!fff", *msg)
     return bytes(m)
 
 def create_server(port: int):
