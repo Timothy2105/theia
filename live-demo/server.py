@@ -7,14 +7,13 @@ import struct
 
 q = Queue()
 
-def pack_msg(msg: tuple[int, int, int]) -> bytes:
-    m = struct.pack("!fff", *msg)
-    return bytes(m)
+def pack_msg(msg: tuple[float, float, float]) -> bytes:
+    # Expects (x, y, state) and packs into network byte order
+    return struct.pack("!fff", *msg)
 
 def create_server(port: int):
     """creates a listener socket"""
     lsock = socket()
-
     try:
         lsock.bind(("0.0.0.0", port))
         lsock.listen()
@@ -37,39 +36,46 @@ def start(port = 2025):
     if server_socket is None:
         return
     print(f"listening for connections on: 0.0.0.0:{port}")
-
+    
     while True:
         client = accept_socket(server_socket)
         if client is None:
             return
-
         client_socket, client_addr = client
         print(f"client connected: {client_addr}")
-
+        
         try:
             while item := q.get(block=True):
-                print(f"got item in queue: {item}")
-
+                # item should be (x, y, state)
+                print(f"sending: {item}")
                 client_socket.send(pack_msg(item))
-
         except BrokenPipeError:
             print("client disconnected")
 
-def put_message(msg: tuple[int, int, int]):
-    q.put_nowait(msg)
+def put_message(x: float, y: float, presence: int):
+    # Convert presence to float for network transmission
+    q.put_nowait((x, y, float(presence)))
 
 def main():
     try:
         tcp_server_thread = Thread(target=start, args=(2025,))
-
         tcp_server_thread.start()
-
+        
+        # Example reading from neural network output
+        # Replace this with actual neural network output reading
         while True:
-            put_message((-1, 3, 1))
-            sleep(0.5)
-
-    except:
-        print("error")
+            with open('your_output_file.txt', 'r') as f:
+                line = f.readline().strip()
+                if line:
+                    # Parse "1 -1.0 3.0" format
+                    presence, x, y = map(float, line.split())
+                    put_message(x, y, presence)
+            sleep(0.016)  # 60fps approximately
+            
+    except KeyboardInterrupt:
+        print("\nShutting down server...")
+    except Exception as e:
+        print(f"Error: {e}")
 
 if __name__ == "__main__":
     main()
