@@ -3,7 +3,7 @@ using System.IO;
 
 public class DataReader : MonoBehaviour
 {
-    public string filePath = "live-demo\live-predictions.txt";
+    public string filePath = "live-demo/live-predictions.txt";
     public Transform dotOverlay;
     private float lastModified = 0f;
 
@@ -15,10 +15,8 @@ public class DataReader : MonoBehaviour
             int state = int.Parse(data[0]);
             float x = float.Parse(data[1]);
             float y = float.Parse(data[2]);
-
             dotOverlay.position = new Vector3(x, y, 0);
             dotOverlay.gameObject.SetActive(state == 1);
-
             lastModified = File.GetLastWriteTime(filePath).ToFileTime();
         }
     }
